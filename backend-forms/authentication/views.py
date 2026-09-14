@@ -162,9 +162,7 @@ def microsoft_callback(request):
     # Create Django's authenticated session.
     login(request, user)
 
-    return redirect(
-        "/api/auth/user/"
-    )
+    return redirect("http://localhost:4200/")
 
 
 def current_user(request):
