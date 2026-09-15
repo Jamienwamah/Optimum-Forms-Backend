@@ -33,4 +33,5 @@ urlpatterns = [
     ),
 
     path("auth/", include("authentication.urls")),
+     path('api/v1/',include('ogcminfra.urls')),
 ]
