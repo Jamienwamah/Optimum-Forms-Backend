@@ -17,6 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 from django.http import JsonResponse
+from .views import csrf_token
 
 
 def api_status(request):
@@ -28,10 +29,14 @@ def api_status(request):
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("api/csrf/", csrf_token, name="csrf_token"),
+    path("api/v1/entra/", include("entraprofile.urls")),
 
     path("",api_status,name="api_status"
     ),
 
     path("auth/", include("authentication.urls")),
-     path('api/v1/',include('ogcminfra.urls')),
+    path('api/v1/',include('ogcminfra.urls')),
+    path('api/v1/', include('ogcmrepl.urls')),
+
 ]

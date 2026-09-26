@@ -1,7 +1,7 @@
-from rest_framework.routers import DefaultRouter
-from .views import OGCMInfrastructureReceiptViewSet
+from django.urls import path
+from .views import get_infrastructure_employee, create_device_infrastructure
 
-router = DefaultRouter()
-router.register(r'ogcm/infrastructure-receipts', OGCMInfrastructureReceiptViewSet, basename='ogcm-infrastructure-receipt')
-
-urlpatterns = router.urls
+urlpatterns = [
+    path("ogcm/infrastructure/employee/", get_infrastructure_employee, name="get_infrastructure_employee"),
+    path("ogcm/infrastructure/", create_device_infrastructure, name="create_device_infrastructure"),
+]

@@ -24,12 +24,28 @@ class OGCMInfrastructureReceiptAdmin(admin.ModelAdmin):
         'po_number',
         'invoice_number',
         'vendor_supplier',
-        'serial_number',
+        'delivery_note_number',
+        'procured_by',
+        'category',
         'brand_model',
+        'serial_number',
+        'inspected_by',
     )
 
-    list_filter = ('category','physical_condition','passed_inspection','accessories_included','inspection_date','date_received',
+    list_filter = (
+        'category',
+        'physical_condition',
+        'accessories_included',
+        'passed_inspection',
+        'inspection_date',
+        'date_received',
+        'created_at',
     )
 
-    readonly_fields = ('created_at','updated_at',
+    readonly_fields = (
+        'created_at',
+    )
+
+    ordering = (
+        '-created_at',
     )
