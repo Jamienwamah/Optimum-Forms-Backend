@@ -31,6 +31,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/csrf/", csrf_token, name="csrf_token"),
     path("api/v1/entra/", include("entraprofile.urls")),
+    path("api/v1/enclusia/", include("enclusia.urls")),
 
     path("",api_status,name="api_status"
     ),
@@ -38,5 +39,8 @@ urlpatterns = [
     path("auth/", include("authentication.urls")),
     path('api/v1/',include('ogcminfra.urls')),
     path('api/v1/', include('ogcmrepl.urls')),
+    path('api/v1/', include('ogcmtrou.urls')),
+    path('api/v1/', include('ogfstrou.urls')),
+    path('api/v1/', include('osttrou.urls')),
 
 ]

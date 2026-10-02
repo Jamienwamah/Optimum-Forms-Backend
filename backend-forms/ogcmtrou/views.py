@@ -3,8 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from entraprofile.models import EntraProfile
-from .serializers import OGCMDeviceTroubleshootSerializer
-
+from .serializers import DeviceTroubleshootingSerializer
 
 # ============================================================
 # GET EMPLOYEE INFORMATION
@@ -28,7 +27,7 @@ def get_troubleshoot_employee(request):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def create_device_troubleshoot(request):
-    serializer = OGCMDeviceTroubleshootSerializer(data=request.data, context={"request": request})
+    serializer = DeviceTroubleshootingSerializer(data=request.data, context={"request": request})
 
     if not serializer.is_valid():
         return Response({"status": "error", "message": "Unable to submit device replacement request.", "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
