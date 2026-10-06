@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'enclusia',
     'ogfstrou',
     'osttrou',
+    'access_control',
 ]
 
 MIDDLEWARE = [
@@ -141,6 +142,7 @@ AUTH_PASSWORD_VALIDATORS = [
 MICROSOFT_CLIENT_ID = os.getenv("MICROSOFT_CLIENT_ID")
 MICROSOFT_CLIENT_SECRET = os.getenv("MICROSOFT_CLIENT_SECRET")
 MICROSOFT_TENANT_ID = os.getenv("MICROSOFT_TENANT_ID")
+GRAPH_SENDER_EMAIL = os.getenv("GRAPH_SENDER_EMAIL")
 
 MICROSOFT_AUTHORITY = (
     f"https://login.microsoftonline.com/{MICROSOFT_TENANT_ID}"
@@ -152,6 +154,16 @@ MICROSOFT_REDIRECT_URI = (
 
 MICROSOFT_SCOPES = [
     "User.Read",
+    "RoleManagement.Read.Directory",
+]
+MICROSOFT_DASHBOARD_SUPER_ADMIN_ROLES = [
+    "Global Administrator",
+]
+
+MICROSOFT_DASHBOARD_ADMIN_ROLES = [
+    "User Administrator",
+    "Helpdesk Administrator",
+    "Service Support Administrator",
 ]
 
 
@@ -178,6 +190,19 @@ STATIC_URL = '/static/'
 
 MAILERS = {
     'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+        'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
+        'OPTIONS': {
+            'host': os.getenv('EMAIL_HOST'),
+            'port': int(os.getenv('EMAIL_PORT', '587')),
+            'username': os.getenv('EMAIL_HOST_USER'),
+            'password': os.getenv('EMAIL_HOST_PASSWORD'),
+            'use_tls': os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true',
+        },
     },
 }
+
+# Access Control Email Notifications
+
+IT_ACCESS_APPROVAL_EMAIL = os.getenv("IT_ACCESS_APPROVAL_EMAIL")
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL")
+ACCESS_PORTAL_BASE_URL = os.getenv("ACCESS_PORTAL_BASE_URL")

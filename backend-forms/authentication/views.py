@@ -221,7 +221,7 @@
 #         }
 #     )
 
-
+from entraprofile.role_mapping import resolve_dashboard_role
 from django.conf import settings
 from django.contrib.auth import login, logout
 from django.contrib.auth.models import User
@@ -433,6 +433,12 @@ def microsoft_callback(request):
     access_token = result.get(
         "access_token"
     )
+    entra_roles = get_entra_roles(
+        access_token
+        )
+    dashboard_role = resolve_dashboard_role(
+        entra_roles
+)
 
     graph_data = {}
 
@@ -553,6 +559,9 @@ def microsoft_callback(request):
             "family_name": family_name,
             "department": department,
             "job_title": job_title,
+            "department": department,
+            "entra_roles": entra_roles,
+            "dashboard_role": dashboard_role,
         },
     )
 
@@ -594,6 +603,61 @@ def current_user(request):
             },
         }
     )
+def get_entra_roles(access_token):
+
+    if not access_token:
+        return []
+
+    response = requests.get(
+        "https://graph.microsoft.com/v1.0/me/memberOf",
+        headers={
+            "Authorization": (
+                f"Bearer {access_token}"
+            )
+        },
+        params={
+            "$select": (
+                "id,"
+                "displayName,"
+                "roleTemplateId"
+            )
+        },
+        timeout=10,
+    )
+
+    if response.status_code != 200:
+
+        print(
+            "MICROSOFT GRAPH ROLE ERROR:",
+            response.status_code,
+            response.text
+        )
+
+        return []
+
+    roles = []
+
+    for item in response.json().get(
+        "value",
+        []
+    ):
+
+        if item.get(
+            "@odata.type"
+        ) != "#microsoft.graph.directoryRole":
+
+            continue
+
+        display_name = item.get(
+            "displayName"
+        )
+
+        if display_name:
+            roles.append(
+                display_name
+            )
+
+    return roles
 
 
 def logout_view(request):

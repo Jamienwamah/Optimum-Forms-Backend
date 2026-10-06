@@ -32,6 +32,7 @@ urlpatterns = [
     path("api/csrf/", csrf_token, name="csrf_token"),
     path("api/v1/entra/", include("entraprofile.urls")),
     path("api/v1/enclusia/", include("enclusia.urls")),
+    path("api/v1/access/", include("access_control.urls")),
 
     path("",api_status,name="api_status"
     ),

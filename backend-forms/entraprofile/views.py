@@ -33,7 +33,9 @@ def get_my_profile(request):
                     "department": profile.department,
                     "jobTitle": profile.job_title,
                     "entraObjectId": profile.entra_object_id,
-                    "tenantId": profile.tenant_id
+                    "tenantId": profile.tenant_id,
+                    "entraRoles": profile.entra_roles,
+                    "dashboardRole": profile.dashboard_role,
                 }
             },
             status=status.HTTP_200_OK
