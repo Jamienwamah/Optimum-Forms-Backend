@@ -7,10 +7,35 @@ class ApprovalRequestSerializer(
     serializers.ModelSerializer
 ):
 
+    # ========================================================
+    # REQUEST CREATOR
+    # ========================================================
+
     user_name = serializers.SerializerMethodField()
     user_email = serializers.SerializerMethodField()
     user_department = serializers.SerializerMethodField()
     user_job_title = serializers.SerializerMethodField()
+
+    # ========================================================
+    # PERSON THE REQUEST IS FOR
+    # ========================================================
+
+    requested_for_name = serializers.CharField(
+        read_only=True
+    )
+
+    requested_for_email = serializers.EmailField(
+        read_only=True
+    )
+
+    requested_for_department = serializers.CharField(
+        read_only=True
+    )
+
+    # ========================================================
+    # REVIEWER
+    # ========================================================
+
     reviewed_by_name = serializers.SerializerMethodField()
 
     class Meta:
@@ -19,11 +44,20 @@ class ApprovalRequestSerializer(
 
         fields = [
             "id",
+
+            # Request creator
             "user",
             "user_name",
             "user_email",
             "user_department",
             "user_job_title",
+
+            # Person requested for
+            "requested_for_name",
+            "requested_for_email",
+            "requested_for_department",
+
+            # Approval request
             "form_code",
             "department",
             "department_email",
@@ -39,11 +73,20 @@ class ApprovalRequestSerializer(
 
         read_only_fields = [
             "id",
+
+            # Request creator
             "user",
             "user_name",
             "user_email",
             "user_department",
             "user_job_title",
+
+            # Person requested for
+            "requested_for_name",
+            "requested_for_email",
+            "requested_for_department",
+
+            # Approval information
             "department",
             "department_email",
             "status",
@@ -62,7 +105,7 @@ class ApprovalRequestSerializer(
             getattr(
                 user,
                 "get_full_name",
-                lambda: ""
+                lambda: "",
             )()
         )
 
@@ -73,12 +116,12 @@ class ApprovalRequestSerializer(
             getattr(
                 user,
                 "username",
-                None
+                None,
             )
             or getattr(
                 user,
                 "email",
-                ""
+                "",
             )
         )
 
@@ -87,7 +130,7 @@ class ApprovalRequestSerializer(
         return getattr(
             obj.user,
             "email",
-            ""
+            "",
         )
 
     def get_user_department(self, obj):
@@ -95,7 +138,7 @@ class ApprovalRequestSerializer(
         return getattr(
             obj.user,
             "department",
-            ""
+            "",
         )
 
     def get_user_job_title(self, obj):
@@ -103,7 +146,7 @@ class ApprovalRequestSerializer(
         return getattr(
             obj.user,
             "job_title",
-            ""
+            "",
         )
 
     def get_reviewed_by_name(self, obj):
@@ -115,7 +158,7 @@ class ApprovalRequestSerializer(
             getattr(
                 obj.reviewed_by,
                 "get_full_name",
-                lambda: ""
+                lambda: "",
             )()
         )
 
@@ -124,7 +167,7 @@ class ApprovalRequestSerializer(
             or getattr(
                 obj.reviewed_by,
                 "username",
-                ""
+                "",
             )
         )
 
@@ -139,10 +182,10 @@ class CreateApprovalRequestSerializer(
 
     reason = serializers.CharField(
         required=False,
-        allow_blank=True
+        allow_blank=True,
     )
 
     submission_data = serializers.JSONField(
         required=False,
-        default=dict
+        default=dict,
     )

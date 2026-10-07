@@ -1,5 +1,7 @@
 import msal
 import requests
+import base64
+import json
 
 from django.conf import settings
 from django.core.signing import dumps
@@ -317,3 +319,46 @@ Optimum IT Support
         html_content=html_content,
         text_content=text_content,
     )
+def get_graph_access_token():
+
+    authority = (
+        f"https://login.microsoftonline.com/"
+        f"{settings.MICROSOFT_TENANT_ID}"
+    )
+
+    app = msal.ConfidentialClientApplication(
+        settings.MICROSOFT_CLIENT_ID,
+        authority=authority,
+        client_credential=settings.MICROSOFT_CLIENT_SECRET,
+    )
+
+    result = app.acquire_token_for_client(
+        scopes=["https://graph.microsoft.com/.default"]
+    )
+
+    if "access_token" not in result:
+        raise RuntimeError(
+            f"Microsoft Graph authentication failed: "
+            f"{result.get('error_description', result)}"
+        )
+
+    token = result["access_token"]
+
+    try:
+        payload = token.split(".")[1]
+        payload += "=" * (-len(payload) % 4)
+
+        claims = json.loads(
+            base64.urlsafe_b64decode(payload)
+        )
+
+        print("GRAPH TOKEN CLAIMS:")
+        print(json.dumps(claims, indent=4))
+
+    except Exception as error:
+        print(
+            "Unable to decode Graph token:",
+            error
+        )
+
+    return token

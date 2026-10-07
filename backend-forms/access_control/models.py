@@ -14,16 +14,36 @@ class ApprovalRequest(models.Model):
         (STATUS_REJECTED, "Rejected"),
     ]
 
+    # Person who created/submitted the request
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="approval_requests",
     )
 
+    # Person the access/request is actually for
+    requested_for_name = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+    )
+
+    requested_for_email = models.EmailField(
+        blank=True,
+        default="",
+    )
+
+    requested_for_department = models.CharField(
+        max_length=150,
+        blank=True,
+        default="",
+    )
+
     form_code = models.CharField(
         max_length=100
     )
 
+    # Department responsible for approving the request
     department = models.CharField(
         max_length=150
     )
@@ -74,6 +94,6 @@ class ApprovalRequest(models.Model):
     def __str__(self):
         return (
             f"{self.form_code} - "
-            f"{self.user} - "
+            f"{self.requested_for_name or self.user} - "
             f"{self.status}"
         )
