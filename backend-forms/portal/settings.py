@@ -30,7 +30,7 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG","False").lower() == "true"
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1",]
 
 
 # Application definition
@@ -45,14 +45,13 @@ INSTALLED_APPS = [
     'authentication',
     'corsheaders',
     'rest_framework',
-    'ogcminfra',
-    'ogcmrepl',
     'entraprofile',
-    'ogcmtrou',
     'enclusia',
-    'ogfstrou',
-    'osttrou',
     'access_control',
+    'infrastructure',
+    'troubleshoot',
+    'replacement',
+    'issue',
 ]
 
 MIDDLEWARE = [
@@ -204,5 +203,29 @@ MAILERS = {
 # Access Control Email Notifications
 
 IT_ACCESS_APPROVAL_EMAIL = os.getenv("IT_ACCESS_APPROVAL_EMAIL")
+INFRASTRUCTURE_APPROVAL_EMAIL = os.getenv("INFRASTRUCTURE_APPROVAL_EMAIL")
+DEVICE_REPLACEMENT_APPROVAL_EMAIL = os.getenv("DEVICE_REPLACEMENT_APPROVAL_EMAIL")
+DEVICE_TROUBLESHOOTING_APPROVAL_EMAIL = os.getenv("DEVICE_TROUBLESHOOTING_APPROVAL_EMAIL")
+DEVICE_ISSUE_APPROVAL_EMAIL = os.getenv("DEVICE_ISSUE_APPROVAL_EMAIL")
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL")
 ACCESS_PORTAL_BASE_URL = os.getenv("ACCESS_PORTAL_BASE_URL")
+AWS_ACCESS_KEY_ID= os.getenv("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY= os.getenv("AWS_SECRET_ACCESS_KEY")
+AWS_SES_REGION_NAME= os.getenv("AWS_SES_REGION_NAME")
+INTERNAL_CONTROL_EMAIL = "internal-control@optimum-g.com"
+IT_ACCESS_DECISION_EMAIL = "ikechukwu.nwamah@optimum-g.com"
+ACCESS_PORTAL_BASE_URL = "https://your-actual-access-portal-domain"
+
+IT_ACCESS_SUBMITTER_GROUPS = [
+    "IT",
+    "IT Support",
+    "IT Team",
+]
+
+APPROVAL_REVIEWER_GROUPS = [
+    "Approval Administrators",
+    "Internal Control",
+    "IT",
+    "IT Support",
+    "IT Team",
+]

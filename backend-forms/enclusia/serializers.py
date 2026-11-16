@@ -1,9 +1,14 @@
+
 from rest_framework import serializers
 import requests
 
 from .models import EnclusiaAccessRequest
-from access_control.email import get_graph_access_token
+from access_control.graph import get_graph_access_token
 
+
+# ==========================================================
+# EMPLOYEE INFORMATION SERIALIZER
+# ==========================================================
 
 class EmployeeSerializer(serializers.Serializer):
 
@@ -23,9 +28,26 @@ class EmployeeSerializer(serializers.Serializer):
     )
 
     employeeId = serializers.CharField(
-        required=True
+        required=True,
+        allow_blank=False
     )
 
+
+# ==========================================================
+# REQUESTER SERIALIZER
+# ==========================================================
+
+class RequesterSerializer(serializers.Serializer):
+
+    name = serializers.CharField(
+        required=False,
+        allow_blank=True
+    )
+
+
+# ==========================================================
+# ACCESS FOR USER SERIALIZER
+# ==========================================================
 
 class AccessForSerializer(serializers.Serializer):
 
@@ -50,30 +72,54 @@ class AccessForSerializer(serializers.Serializer):
         return value
 
 
+# ==========================================================
+# ENCLUSIA ACCESS SERIALIZER
+# ==========================================================
+
 class EnclusiaAccessSerializer(serializers.Serializer):
 
-    role = serializers.CharField(
+    # expirationType = serializers.ChoiceField(
+    #     choices=[
+    #         choice[0]
+    #         for choice in EnclusiaAccessRequest.EXPIRATION_TYPE_CHOICES
+    #     ],
+    #     required=True
+    # )
+
+    accessRequired = serializers.ChoiceField(
+        choices=[
+            choice[0]
+            for choice in EnclusiaAccessRequest.ACCESS_REQUIRED_CHOICES
+        ],
         required=True
     )
 
-    rolecode = serializers.CharField(
-        required=True
+    justification = serializers.CharField(
+        required=True,
+        allow_blank=False,
+        trim_whitespace=True
     )
 
-    roleDescription = serializers.CharField(
-        required=True
-    )
+    def validate_justification(self, value):
 
-    reason = serializers.CharField(
-        required=True
-    )
+        if len(value.strip()) < 10:
 
+            raise serializers.ValidationError(
+                "Please provide a more detailed justification."
+            )
+
+        return value.strip()
+
+
+# ==========================================================
+# MAIN ENCLUSIA ACCESS REQUEST SERIALIZER
+# ==========================================================
 
 class EnclusiaAccessRequestSerializer(serializers.Serializer):
 
-    # ----------------------------------------------------
-    # Sent by Angular but not stored directly.
-    # ----------------------------------------------------
+    # ------------------------------------------------------
+    # CURRENT DATE
+    # ------------------------------------------------------
 
     currentDate = serializers.CharField(
         required=False,
@@ -81,45 +127,66 @@ class EnclusiaAccessRequestSerializer(serializers.Serializer):
         write_only=True
     )
 
-    # ----------------------------------------------------
-    # Person submitting the request
-    # ----------------------------------------------------
 
-    requester = serializers.DictField(
+    # ------------------------------------------------------
+    # PERSON SUBMITTING THE REQUEST
+    # ------------------------------------------------------
+
+    requester = RequesterSerializer(
         required=False
     )
 
-    # ----------------------------------------------------
-    # Person receiving the access
-    # ----------------------------------------------------
+
+    # ------------------------------------------------------
+    # PERSON RECEIVING THE ACCESS
+    # ------------------------------------------------------
 
     accessFor = AccessForSerializer(
         required=True
     )
 
-    # ----------------------------------------------------
-    # Employee information
-    # ----------------------------------------------------
+
+    # ------------------------------------------------------
+    # EMPLOYEE INFORMATION
+    # ------------------------------------------------------
 
     employee = EmployeeSerializer(
         required=True
     )
 
-    # ----------------------------------------------------
-    # Enclusia access information
-    # ----------------------------------------------------
+
+    # ------------------------------------------------------
+    # ENCLUSIA ACCESS INFORMATION
+    # ------------------------------------------------------
 
     enclusiaAccess = EnclusiaAccessSerializer(
         required=True
     )
 
+
+    # ======================================================
+    # CREATE ACCESS REQUEST
+    # ======================================================
+
     def create(self, validated_data):
 
-        request = self.context["request"]
+        request = self.context.get("request")
 
-        # ------------------------------------------------
-        # GET THE LOGGED-IN USER'S ENTRA PROFILE
-        # ------------------------------------------------
+        if not request or not request.user.is_authenticated:
+
+            raise serializers.ValidationError(
+                {
+                    "requester": (
+                        "You must be authenticated to submit "
+                        "an Enclusia access request."
+                    )
+                }
+            )
+
+
+        # --------------------------------------------------
+        # GET AUTHENTICATED USER'S ENTRA PROFILE
+        # --------------------------------------------------
 
         profile = getattr(
             request.user,
@@ -138,13 +205,19 @@ class EnclusiaAccessRequestSerializer(serializers.Serializer):
                 }
             )
 
-        # ------------------------------------------------
-        # REMOVE NESTED DATA
-        # ------------------------------------------------
 
-        requester_data = validated_data.pop(
+        # --------------------------------------------------
+        # REMOVE NESTED DATA
+        # --------------------------------------------------
+
+        validated_data.pop(
             "requester",
-            {}
+            None
+        )
+
+        validated_data.pop(
+            "currentDate",
+            None
         )
 
         access_for_data = validated_data.pop(
@@ -152,86 +225,104 @@ class EnclusiaAccessRequestSerializer(serializers.Serializer):
         )
 
         employee_data = validated_data.pop(
-            "employee",
-            {}
+            "employee"
         )
 
         enclusia_access_data = validated_data.pop(
             "enclusiaAccess"
         )
 
-        # ------------------------------------------------
-        # currentDate IS NOT STORED
-        # ------------------------------------------------
 
-        validated_data.pop(
-            "currentDate",
-            None
-        )
-
-        # ------------------------------------------------
-        # EMPLOYEE ID
+        # --------------------------------------------------
+        # AUTHENTICATED REQUESTER INFORMATION
         #
-        # This remains the Employee ID supplied on the
-        # existing Angular form.
-        # ------------------------------------------------
-
-        employee_id = employee_data.get(
-            "employeeId",
-            ""
-        )
-
-        # ------------------------------------------------
-        # REQUESTER
-        #
-        # We do not trust the requester information
-        # supplied by Angular.
-        #
-        # The authenticated Entra profile remains the
-        # source of truth.
-        # ------------------------------------------------
+        # The authenticated Entra profile is the source
+        # of truth, not the name supplied by Angular.
+        # --------------------------------------------------
 
         requester_name = (
-            profile.display_name
+            getattr(profile, "display_name", "")
             or ""
-        )
+        ).strip()
 
         requester_email = (
-            getattr(
-                profile,
-                "email",
-                None
-            )
-            or getattr(
-                profile,
-                "user_principal_name",
-                None
-            )
-            or getattr(
-                request.user,
-                "email",
-                ""
-            )
+            getattr(profile, "email", None)
+            or getattr(profile, "user_principal_name", None)
+            or getattr(request.user, "email", "")
             or ""
-        )
+        ).strip().lower()
 
-        # ------------------------------------------------
+
+        if not requester_name:
+
+            raise serializers.ValidationError(
+                {
+                    "requester": (
+                        "Your Microsoft Entra display name "
+                        "could not be retrieved."
+                    )
+                }
+            )
+
+
+        # --------------------------------------------------
+        # REQUESTER EMPLOYEE INFORMATION
+        # --------------------------------------------------
+
+        requester_department = (
+            getattr(profile, "department", "")
+            or ""
+        ).strip()
+
+        requester_job_title = (
+            getattr(profile, "job_title", "")
+            or ""
+        ).strip()
+
+
+        # --------------------------------------------------
+        # EMPLOYEE ID
+        #
+        # Employee ID is supplied through the existing
+        # Angular form because it may not be available
+        # in the Entra profile.
+        # --------------------------------------------------
+
+        employee_id = (
+            employee_data.get("employeeId", "")
+            or ""
+        ).strip()
+
+        if not employee_id:
+
+            raise serializers.ValidationError(
+                {
+                    "employee": {
+                        "employeeId": (
+                            "Employee ID is required."
+                        )
+                    }
+                }
+            )
+
+
+        # --------------------------------------------------
         # VERIFY ACCESS-FOR EMPLOYEE IN MICROSOFT ENTRA
-        # ------------------------------------------------
         #
-        # The person creating the request and the person
-        # receiving the access can be different people.
-        #
-        # The email entered in accessFor.email is checked
-        # directly against Microsoft Entra.
-        # ------------------------------------------------
+        # The requester and the person receiving access
+        # may be different employees.
+        # --------------------------------------------------
 
         access_for_email = (
-            access_for_data
-            .get("email", "")
+            access_for_data.get("email", "")
             .strip()
             .lower()
         )
+
+
+        # --------------------------------------------------
+        # GET MICROSOFT GRAPH ACCESS TOKEN
+        # --------------------------------------------------
 
         try:
 
@@ -242,19 +333,16 @@ class EnclusiaAccessRequestSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {
                     "accessFor": (
-                        "Unable to verify the employee "
-                        "against Microsoft Entra ID."
+                        "Unable to obtain Microsoft Graph "
+                        "authorization to verify the employee."
                     )
                 }
             ) from error
 
-        # ------------------------------------------------
+
+        # --------------------------------------------------
         # MICROSOFT GRAPH USER LOOKUP
-        #
-        # Search by both mail and userPrincipalName.
-        # This keeps the submitted accessFor email as the
-        # lookup value without changing the existing form.
-        # ------------------------------------------------
+        # --------------------------------------------------
 
         safe_email = access_for_email.replace(
             "'",
@@ -280,9 +368,9 @@ class EnclusiaAccessRequestSerializer(serializers.Serializer):
                 params={
                     "$filter": (
                         f"mail eq '{safe_email}' "
-                        f"or userPrincipalName eq "
-                        f"'{safe_email}'"
+                        f"or userPrincipalName eq '{safe_email}'"
                     ),
+
                     "$select": (
                         "id,"
                         "displayName,"
@@ -292,6 +380,7 @@ class EnclusiaAccessRequestSerializer(serializers.Serializer):
                         "jobTitle,"
                         "employeeId"
                     ),
+
                     "$top": "1"
                 },
 
@@ -304,48 +393,32 @@ class EnclusiaAccessRequestSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {
                     "accessFor": (
-                        "Unable to contact Microsoft "
-                        "Entra ID to verify the employee."
+                        "Unable to contact Microsoft Entra ID "
+                        "to verify the employee."
                     )
                 }
             ) from error
 
-        # ------------------------------------------------
+
+        # --------------------------------------------------
         # GRAPH AUTHORIZATION ERROR
-        # ------------------------------------------------
+        # --------------------------------------------------
 
-        # if graph_response.status_code in (
-        #     401,
-        #     403
-        # ):
+        if graph_response.status_code in (401, 403):
 
-        #     raise serializers.ValidationError(
-        #         {
-        #             "accessFor": (
-        #                 "The system could not verify the "
-        #                 "employee because Microsoft Entra "
-        #                 "authorization is unavailable."
-        #             )
-        #         }
-        #     )
-
-        if graph_response.status_code in (
-            401,
-            403
-        ):
             raise serializers.ValidationError(
                 {
                     "accessFor": (
-                        f"Microsoft Graph returned "
-                        f"HTTP {graph_response.status_code}: "
-                        f"{graph_response.text}"
+                        "Microsoft Graph authorization failed. "
+                        "Please contact IT Support."
                     )
                 }
             )
 
-        # ------------------------------------------------
-        # OTHER GRAPH ERROR
-        # ------------------------------------------------
+
+        # --------------------------------------------------
+        # OTHER GRAPH ERRORS
+        # --------------------------------------------------
 
         if not graph_response.ok:
 
@@ -358,23 +431,36 @@ class EnclusiaAccessRequestSerializer(serializers.Serializer):
                 }
             )
 
-        # ------------------------------------------------
-        # GET GRAPH USER RESULT
-        #
-        # A filtered /users request returns HTTP 200 even
-        # when no matching user exists.
-        # ------------------------------------------------
 
-        graph_data = graph_response.json()
+        # --------------------------------------------------
+        # GET GRAPH USER RESULT
+        # --------------------------------------------------
+
+        try:
+
+            graph_data = graph_response.json()
+
+        except ValueError as error:
+
+            raise serializers.ValidationError(
+                {
+                    "accessFor": (
+                        "Microsoft Entra returned an "
+                        "invalid response."
+                    )
+                }
+            ) from error
+
 
         graph_users = graph_data.get(
             "value",
             []
         )
 
-        # ------------------------------------------------
+
+        # --------------------------------------------------
         # EMPLOYEE DOES NOT EXIST
-        # ------------------------------------------------
+        # --------------------------------------------------
 
         if not graph_users:
 
@@ -390,11 +476,13 @@ class EnclusiaAccessRequestSerializer(serializers.Serializer):
                 }
             )
 
+
         access_for_profile = graph_users[0]
 
-        # ------------------------------------------------
-        # VERIFY THAT GRAPH ACTUALLY RETURNED A USER
-        # ------------------------------------------------
+
+        # --------------------------------------------------
+        # VERIFY GRAPH RETURNED A USER IDENTITY
+        # --------------------------------------------------
 
         access_for_object_id = (
             access_for_profile.get("id")
@@ -414,54 +502,60 @@ class EnclusiaAccessRequestSerializer(serializers.Serializer):
                 }
             )
 
-        # ------------------------------------------------
+
+        # --------------------------------------------------
         # GET AUTHORITATIVE ENTRA INFORMATION
-        # ------------------------------------------------
+        # --------------------------------------------------
 
         access_for_name = (
-            access_for_profile.get(
-                "displayName"
-            )
-            or access_for_data.get(
-                "name",
-                ""
-            )
-        )
+            access_for_profile.get("displayName")
+            or access_for_data.get("name", "")
+        ).strip()
 
         access_for_mail = (
-            access_for_profile.get(
-                "mail"
-            )
-            or access_for_profile.get(
-                "userPrincipalName"
-            )
+            access_for_profile.get("mail")
+            or access_for_profile.get("userPrincipalName")
             or access_for_email
-        )
+        ).strip().lower()
 
         access_for_department = (
-            access_for_profile.get(
-                "department"
-            )
+            access_for_profile.get("department")
             or ""
         ).strip()
 
         access_for_job_title = (
-            access_for_profile.get(
-                "jobTitle"
-            )
+            access_for_profile.get("jobTitle")
             or ""
-        )
+        ).strip()
 
         access_for_employee_id = (
-            access_for_profile.get(
-                "employeeId"
-            )
+            access_for_profile.get("employeeId")
             or ""
-        )
+        ).strip()
 
-        # ------------------------------------------------
+
+        # --------------------------------------------------
+        # VERIFY THE RETURNED ENTRA EMAIL
+        # --------------------------------------------------
+
+        if not access_for_mail.endswith("@optimum-g.com"):
+
+            raise serializers.ValidationError(
+                {
+                    "accessFor": {
+                        "email": (
+                            "The matched Entra account does "
+                            "not have an approved Optimum "
+                            "Global email address."
+                        )
+                    }
+                }
+            )
+
+
+        # --------------------------------------------------
         # DEPARTMENT IS REQUIRED FOR APPROVAL ROUTING
-        # ------------------------------------------------
+        # --------------------------------------------------
 
         if not access_for_department:
 
@@ -479,120 +573,121 @@ class EnclusiaAccessRequestSerializer(serializers.Serializer):
                 }
             )
 
-        # ------------------------------------------------
+
+        # --------------------------------------------------
         # CREATE DATABASE RECORD
-        # ------------------------------------------------
         #
-        # IMPORTANT:
-        #
-        # employee_* fields continue to represent the
-        # PERSON CREATING THE REQUEST.
+        # employee_* fields represent the PERSON CREATING
+        # THE REQUEST.
         #
         # access_for_* fields represent the PERSON
         # RECEIVING THE ACCESS.
-        # ------------------------------------------------
+        # --------------------------------------------------
 
-        access_request = (
-            EnclusiaAccessRequest.objects.create(
+        access_request = EnclusiaAccessRequest.objects.create(
 
-                # ----------------------------------------
-                # Authenticated User
-                # ----------------------------------------
+            # ----------------------------------------------
+            # AUTHENTICATED DJANGO USER
+            # ----------------------------------------------
 
-                created_by=request.user,
+            created_by=request.user,
 
-                # ----------------------------------------
-                # Requester
-                # ----------------------------------------
 
-                requester_name=requester_name,
+            # ----------------------------------------------
+            # REQUESTER
+            # ----------------------------------------------
 
-                # ----------------------------------------
-                # Person Receiving Access
-                # ----------------------------------------
+            requester_name=requester_name,
 
-                access_for_name=access_for_name,
 
-                access_for_email=access_for_mail,
+            # ----------------------------------------------
+            # PERSON RECEIVING ACCESS
+            # ----------------------------------------------
 
-                # ----------------------------------------
-                # Requester's Employee Information
-                # ----------------------------------------
+            access_for_name=access_for_name,
 
-                employee_name=(
-                    profile.display_name
-                    or ""
-                ),
+            access_for_email=access_for_mail,
 
-                employee_department=(
-                    profile.department
-                    or ""
-                ),
 
-                employee_job_title=(
-                    profile.job_title
-                    or ""
-                ),
+            # ----------------------------------------------
+            # REQUESTER EMPLOYEE INFORMATION
+            # ----------------------------------------------
 
-                employee_id=employee_id,
+            employee_name=requester_name,
 
-                # ----------------------------------------
-                # Enclusia Access
-                # ----------------------------------------
+            employee_department=requester_department,
 
-                role=enclusia_access_data.get(
-                    "role"
-                ),
+            employee_job_title=requester_job_title,
 
-                rolecode=enclusia_access_data.get(
-                    "rolecode"
-                ),
+            employee_id=employee_id,
 
-                role_description=(
-                    enclusia_access_data.get(
-                        "roleDescription"
-                    )
-                ),
 
-                reason=enclusia_access_data.get(
-                    "reason"
+            # ----------------------------------------------
+            # ENCLUSIA ACCESS INFORMATION
+            # ----------------------------------------------
+
+            # expiration_type=(
+            #     enclusia_access_data.get(
+            #         "expirationType"
+            #     )
+            # ),
+
+            access_required=(
+                enclusia_access_data.get(
+                    "accessRequired"
+                )
+            ),
+
+            justification=(
+                enclusia_access_data.get(
+                    "justification"
                 )
             )
+
         )
 
-        # ------------------------------------------------
+
+        # --------------------------------------------------
         # KEEP VERIFIED ENTRA DATA AVAILABLE TO THE VIEW
-        # ------------------------------------------------
         #
-        # These are not database fields.
-        # They are temporary attributes used by the
-        # view when creating the ApprovalRequest.
-        # ------------------------------------------------
+        # These are temporary attributes, not database
+        # fields. Your view can use them when creating
+        # the ApprovalRequest.
+        # --------------------------------------------------
 
         access_request.verified_access_for = {
+
             "id": access_for_object_id,
+
             "name": access_for_name,
+
             "email": access_for_mail,
+
             "department": access_for_department,
+
             "jobTitle": access_for_job_title,
+
             "employeeId": access_for_employee_id
+
         }
 
+
         access_request.verified_requester = {
+
             "name": requester_name,
+
             "email": requester_email,
-            "department": (
-                profile.department
-                or ""
-            ),
-            "jobTitle": (
-                profile.job_title
-                or ""
-            ),
+
+            "department": requester_department,
+
+            "jobTitle": requester_job_title,
+
             "employeeId": (
-                profile.employee_id
+                getattr(profile, "employee_id", None)
                 or employee_id
             )
+
         }
+
 
         return access_request

@@ -38,10 +38,8 @@ urlpatterns = [
     ),
 
     path("auth/", include("authentication.urls")),
-    path('api/v1/',include('ogcminfra.urls')),
-    path('api/v1/', include('ogcmrepl.urls')),
-    path('api/v1/', include('ogcmtrou.urls')),
-    path('api/v1/', include('ogfstrou.urls')),
-    path('api/v1/', include('osttrou.urls')),
-
+    path('api/v1/',include('infrastructure.urls')),
+    path('api/v1/', include('replacement.urls')),
+    path('api/v1/', include('troubleshoot.urls')),
+    path('api/v1/', include('issue.urls')),
 ]

@@ -1,8 +1,13 @@
+
 from django.conf import settings
 from django.db import models
 
 
 class EnclusiaAccessRequest(models.Model):
+
+    # ==========================================================
+    # REQUEST STATUS
+    # ==========================================================
 
     STATUS_CHOICES = [
         ("Submitted", "Submitted"),
@@ -13,51 +18,89 @@ class EnclusiaAccessRequest(models.Model):
         ("Closed", "Closed"),
     ]
 
-    ROLE_CODE_CHOICES = [
-        ("ADM", "ADM"),
-        ("AO", "AO"),
-        ("FIN_DASH", "FIN_DASH"),
-        ("FINCON", "FINCON"),
-        ("GLOBAL_DASH", "GLOBAL_DASH"),
-        ("INT_CTRL", "INT_CTRL"),
-        ("INV_SETUP", "INV_SETUP"),
-        ("IT_SUP", "IT_SUP"),
-        ("OPS", "OPS"),
-        ("OPS_DASH", "OPS_DASH"),
-        ("SM", "SM"),
-        ("TR_OPS", "TR_OPS"),
+
+    # ==========================================================
+    # ACCESS EXPIRATION TYPE
+    # ==========================================================
+
+    # EXPIRATION_TYPE_CHOICES = [
+    #     ("Temporary Request", "Temporary Request"),
+    #     ("Permanent Request", "Permanent Request"),
+    # ]
+
+
+    # ==========================================================
+    # ENCLUSIA ACCESS REQUIREMENTS
+    # ==========================================================
+
+    ACCESS_REQUIRED_CHOICES = [
+        (
+            "Customer Account and Transaction Management",
+            "Customer Account and Transaction Management"
+        ),
+        (
+            "Customer Investment Management",
+            "Customer Investment Management"
+        ),
+        (
+            "Portfolio Management",
+            "Portfolio Management"
+        ),
+        (
+            "Treasury",
+            "Treasury"
+        ),
+        (
+            "Treasury Setup",
+            "Treasury Setup"
+        ),
+        (
+            "Investment Module Setup",
+            "Investment Module Setup"
+        ),
+        (
+            "Financial Accounting",
+            "Financial Accounting"
+        ),
+        (
+            "Financial Accounting Setup",
+            "Financial Accounting Setup"
+        ),
+        (
+            "System Administration",
+            "System Administration"
+        ),
     ]
 
-    ROLE_CHOICES = [
-        ("Administrator", "Administrator"),
-        ("Account Officers", "Account Officers"),
-        ("Finance Dashboard", "Finance Dashboard"),
-        ("Financial Control", "Financial Control"),
-        ("Global Dashboard", "Global Dashboard"),
-        ("Internal Control", "Internal Control"),
-        ("INVESTMENT MODULE SETUP", "INVESTMENT MODULE SETUP"),
-        ("IT Support", "IT Support"),
-        ("Operations", "Operations"),
-        ("OPERATIONS DASHBOARD", "OPERATIONS DASHBOARD"),
-        ("Support Manager", "Support Manager"),
-        ("TREASURY OPERATIONS", "TREASURY OPERATIONS"),
-    ]
 
-    # Request information
-    request_date = models.DateField(auto_now_add=True)
+    # ==========================================================
+    # REQUEST INFORMATION
+    # ==========================================================
+
+    request_date = models.DateField(
+        auto_now_add=True
+    )
 
     requester_name = models.CharField(
         max_length=255
     )
 
-    # Person receiving the access
+
+    # ==========================================================
+    # PERSON RECEIVING THE ACCESS
+    # ==========================================================
+
     access_for_name = models.CharField(
         max_length=255
     )
 
     access_for_email = models.EmailField()
 
-    # Employee information of requester
+
+    # ==========================================================
+    # EMPLOYEE INFORMATION OF REQUESTER
+    # ==========================================================
+
     employee_name = models.CharField(
         max_length=255
     )
@@ -74,31 +117,40 @@ class EnclusiaAccessRequest(models.Model):
         max_length=100
     )
 
-    # Enclusia access
-    role = models.CharField(
+
+    # ==========================================================
+    # ENCLUSIA CLOUD PLATFORM ACCESS
+    # ==========================================================
+
+    # expiration_type = models.CharField(
+    #     max_length=50,
+    #     choices=EXPIRATION_TYPE_CHOICES
+    # )
+
+    access_required = models.CharField(
         max_length=100,
-        choices=ROLE_CHOICES
+        choices=ACCESS_REQUIRED_CHOICES,
+        default="System Administration"
     )
 
-    rolecode = models.CharField(
-        max_length=50,
-        choices=ROLE_CODE_CHOICES
-    )
+    justification = models.TextField()
 
-    role_description = models.CharField(
-        max_length=255
-    )
 
-    reason = models.TextField()
+    # ==========================================================
+    # APPROVAL WORKFLOW
+    # ==========================================================
 
-    # Workflow
     status = models.CharField(
         max_length=30,
         choices=STATUS_CHOICES,
         default="Submitted"
     )
 
-    # Django authenticated user who submitted the request
+
+    # ==========================================================
+    # AUTHENTICATED DJANGO USER
+    # ==========================================================
+
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -106,6 +158,11 @@ class EnclusiaAccessRequest(models.Model):
         blank=True,
         related_name="enclusia_access_requests"
     )
+
+
+    # ==========================================================
+    # RECORD TIMESTAMPS
+    # ==========================================================
 
     created_at = models.DateTimeField(
         auto_now_add=True
@@ -115,14 +172,28 @@ class EnclusiaAccessRequest(models.Model):
         auto_now=True
     )
 
+
+    # ==========================================================
+    # MODEL CONFIGURATION
+    # ==========================================================
+
     class Meta:
+
         ordering = ["-created_at"]
+
         verbose_name = "Enclusia Access Request"
+
         verbose_name_plural = "Enclusia Access Requests"
 
+
+    # ==========================================================
+    # STRING REPRESENTATION
+    # ==========================================================
+
     def __str__(self):
+
         return (
             f"{self.access_for_name} - "
-            f"{self.rolecode} - "
+            f"{self.access_required} - "
             f"{self.status}"
         )

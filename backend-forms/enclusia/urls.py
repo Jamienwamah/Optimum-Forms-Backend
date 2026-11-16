@@ -1,13 +1,13 @@
+
 from django.urls import path
 
-from .views import (
-    EnclusiaAccessRequestCreateView,
-)
+from .views import EnclusiaAccessRequestCreateView
 
 
 urlpatterns = [
-
-    path("user/",EnclusiaAccessRequestCreateView.as_view(),name="enclusia-user-access",
-         ),
-
+    path(
+        "user/",
+        EnclusiaAccessRequestCreateView.as_view(),
+        name="enclusia-user-access",
+    ),
 ]
