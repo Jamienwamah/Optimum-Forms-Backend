@@ -1,3 +1,4 @@
+from .permissions import (is_authorized_reviewer,is_internal_control_reviewer,)
 from .graph import get_graph_access_token
 from html import escape
 
@@ -57,9 +58,6 @@ APPROVAL_REVIEWER_GROUPS = getattr(
     [
         "Approval Administrators",
         "Internal Control",
-        "IT",
-        "IT Support",
-        "IT Team",
     ],
 )
 
@@ -78,12 +76,8 @@ WEALTHFORGE_ACCESS_FORM_CODE = str(
 # Explicitly authorized administrators may submit access requests
 # on behalf of employees without being the assigned Entra manager.
 ACCESS_REQUEST_ADMIN_EMAILS = {
-    str(email).strip().lower()
-    for email in getattr(
-        settings,
-        "ACCESS_REQUEST_ADMIN_EMAILS",
-        ["ikechukwu.nwamah@optimum-g.com"],
-    )
+    email.strip().lower()
+    for email in getattr(settings, "ACCESS_REQUEST_ADMIN_EMAILS", [])
     if email
 }
 
