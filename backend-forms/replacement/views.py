@@ -59,6 +59,19 @@ class DeviceReplacementCreateView(APIView):
         )
 
         # ========================================================
+        # IDENTIFY COMPANY
+        # ========================================================
+
+        company = serializer.validated_data.get(
+            "company"
+        )
+
+        logger.info(
+            "Device replacement company identified: %s",
+            company
+        )
+
+        # ========================================================
         # DETERMINE APPROVAL DEPARTMENT
         #
         # Device replacement requests are routed to IT Support
@@ -110,8 +123,10 @@ class DeviceReplacementCreateView(APIView):
                 replacement_request = serializer.save()
 
                 logger.info(
-                    "Device replacement request saved. Request ID: %s",
-                    replacement_request.id
+                    "Device replacement request saved. "
+                    "Request ID: %s, Company: %s",
+                    replacement_request.id,
+                    replacement_request.company
                 )
 
                 # ====================================================
@@ -120,7 +135,21 @@ class DeviceReplacementCreateView(APIView):
 
                 submission_data = {
 
+                    # ----------------------------------------------
+                    # COMPANY INFORMATION
+                    # ----------------------------------------------
+
+                    "company": replacement_request.company,
+
+                    # ----------------------------------------------
+                    # REQUEST TYPE
+                    # ----------------------------------------------
+
                     "request_type": "Device Replacement",
+
+                    # ----------------------------------------------
+                    # REQUESTER INFORMATION
+                    # ----------------------------------------------
 
                     "requester": {
                         "name": replacement_request.requester_name,
@@ -128,6 +157,10 @@ class DeviceReplacementCreateView(APIView):
                         "job_title": replacement_request.job_title,
                         "employee_id": replacement_request.employee_id,
                     },
+
+                    # ----------------------------------------------
+                    # CURRENT DEVICE INFORMATION
+                    # ----------------------------------------------
 
                     "current_device": {
                         "asset_tag": replacement_request.asset_tag or "",
@@ -137,6 +170,10 @@ class DeviceReplacementCreateView(APIView):
                         "reason_for_replacement":
                             replacement_request.reason_for_replacement,
                     },
+
+                    # ----------------------------------------------
+                    # REPLACEMENT DETAILS
+                    # ----------------------------------------------
 
                     "replacement_details": {
                         "requested_device_type":
@@ -154,8 +191,15 @@ class DeviceReplacementCreateView(APIView):
                             else None,
                     },
 
+                    # ----------------------------------------------
+                    # REQUEST DETAILS
+                    # ----------------------------------------------
+
                     "request_details": {
                         "request_id": replacement_request.id,
+
+                        "company": replacement_request.company,
+
                         "status": replacement_request.status,
 
                         "submitted_at":
@@ -185,7 +229,8 @@ class DeviceReplacementCreateView(APIView):
                     # Approval reason
                     reason=(
                         "Device replacement approval required: "
-                        f"{replacement_request.brand_model}"
+                        f"{replacement_request.brand_model} "
+                        f"({replacement_request.company})"
                     ),
 
                     # Submitted replacement information
@@ -194,8 +239,9 @@ class DeviceReplacementCreateView(APIView):
 
                 logger.info(
                     "Device replacement approval request created. "
-                    "Approval Request ID: %s",
-                    approval_request.id
+                    "Approval Request ID: %s, Company: %s",
+                    approval_request.id,
+                    replacement_request.company
                 )
 
         except Exception:
@@ -229,9 +275,10 @@ class DeviceReplacementCreateView(APIView):
 
             logger.info(
                 "Sending device replacement approval notification. "
-                "Approval Request ID: %s, Recipient: %s",
+                "Approval Request ID: %s, Recipient: %s, Company: %s",
                 approval_request.id,
-                approval_request.department_email
+                approval_request.department_email,
+                replacement_request.company
             )
 
             email_result = send_approval_request_email(
@@ -293,6 +340,8 @@ class DeviceReplacementCreateView(APIView):
 
             "request_id": replacement_request.id,
 
+            "company": replacement_request.company,
+
             "approval_request_id": approval_request.id,
 
             "department": approval_request.department,
@@ -304,6 +353,8 @@ class DeviceReplacementCreateView(APIView):
             "email_message_id": email_message_id,
 
             "request": {
+                "company": replacement_request.company,
+
                 "requester": replacement_request.requester_name,
 
                 "device": replacement_request.brand_model,
@@ -323,9 +374,10 @@ class DeviceReplacementCreateView(APIView):
         logger.info(
             "Device replacement processing completed. "
             "Request ID: %s, Approval Request ID: %s, "
-            "Email accepted: %s",
+            "Company: %s, Email accepted: %s",
             replacement_request.id,
             approval_request.id,
+            replacement_request.company,
             email_accepted
         )
 

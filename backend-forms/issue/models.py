@@ -6,6 +6,21 @@ from django.db import models
 class LaptopIssue(models.Model):
 
     # ==========================================================
+    # COMPANY
+    # ==========================================================
+
+    class Company(models.TextChoices):
+        OGCM = "OGCM", "Optimum Global Capital"
+        OGFS = "OGFS", "Optimum Global Financial Services"
+        OST = "OST", "Optimum Securities and Trust"
+
+    company = models.CharField(
+        max_length=4,
+        choices=Company.choices,
+        db_index=True
+    )
+
+    # ==========================================================
     # REQUEST STATUS
     # ==========================================================
 
@@ -17,7 +32,6 @@ class LaptopIssue(models.Model):
         ("Completed", "Completed"),
         ("Closed", "Closed"),
     ]
-
 
     # ==========================================================
     # REQUEST INFORMATION
@@ -48,7 +62,6 @@ class LaptopIssue(models.Model):
         max_length=100
     )
 
-
     # ==========================================================
     # LAPTOP ISSUE INFORMATION
     # ==========================================================
@@ -69,7 +82,6 @@ class LaptopIssue(models.Model):
 
     date_issued = models.DateField()
 
-
     # ==========================================================
     # APPROVAL WORKFLOW
     # ==========================================================
@@ -79,7 +91,6 @@ class LaptopIssue(models.Model):
         choices=STATUS_CHOICES,
         default="Submitted"
     )
-
 
     # ==========================================================
     # AUTHENTICATED DJANGO USER
@@ -93,7 +104,6 @@ class LaptopIssue(models.Model):
         related_name="laptop_issues"
     )
 
-
     # ==========================================================
     # RECORD TIMESTAMPS
     # ==========================================================
@@ -105,7 +115,6 @@ class LaptopIssue(models.Model):
     updated_at = models.DateTimeField(
         auto_now=True
     )
-
 
     # ==========================================================
     # MODEL CONFIGURATION
@@ -119,6 +128,16 @@ class LaptopIssue(models.Model):
 
         verbose_name_plural = "Laptop Issues"
 
+        indexes = [
+            models.Index(
+                fields=["company", "-created_at"],
+                name="laptop_company_created_idx"
+            ),
+            models.Index(
+                fields=["company", "status"],
+                name="laptop_company_status_idx"
+            ),
+        ]
 
     # ==========================================================
     # STRING REPRESENTATION
@@ -129,5 +148,6 @@ class LaptopIssue(models.Model):
         return (
             f"{self.document_no} - "
             f"{self.requester_name} - "
+            f"{self.company} - "
             f"{self.status}"
         )

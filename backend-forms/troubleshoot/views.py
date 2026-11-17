@@ -54,8 +54,11 @@ class DeviceTroubleshootingCreateView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        company = serializer.validated_data.get("company")
+
         logger.info(
-            "Device troubleshooting validation successful."
+            "Device troubleshooting validation successful. Company: %s",
+            company
         )
 
         # ========================================================
@@ -110,8 +113,10 @@ class DeviceTroubleshootingCreateView(APIView):
                 troubleshooting_request = serializer.save()
 
                 logger.info(
-                    "Device troubleshooting request saved. Request ID: %s",
-                    troubleshooting_request.id
+                    "Device troubleshooting request saved. "
+                    "Request ID: %s, Company: %s",
+                    troubleshooting_request.id,
+                    troubleshooting_request.company
                 )
 
                 # ====================================================
@@ -121,6 +126,8 @@ class DeviceTroubleshootingCreateView(APIView):
                 submission_data = {
 
                     "request_type": "Device Troubleshooting",
+
+                    "company": troubleshooting_request.company,
 
                     "requester": {
                         "name": troubleshooting_request.requester_name,
@@ -165,6 +172,8 @@ class DeviceTroubleshootingCreateView(APIView):
                     "request_details": {
                         "request_id": troubleshooting_request.id,
 
+                        "company": troubleshooting_request.company,
+
                         "status": troubleshooting_request.status,
 
                         "submitted_at":
@@ -193,6 +202,7 @@ class DeviceTroubleshootingCreateView(APIView):
 
                     # Approval reason
                     reason=(
+                        f"[{troubleshooting_request.company}] "
                         "Device troubleshooting request: "
                         f"{troubleshooting_request.brand_model}"
                     ),
@@ -203,8 +213,9 @@ class DeviceTroubleshootingCreateView(APIView):
 
                 logger.info(
                     "Device troubleshooting approval request created. "
-                    "Approval Request ID: %s",
-                    approval_request.id
+                    "Approval Request ID: %s, Company: %s",
+                    approval_request.id,
+                    troubleshooting_request.company
                 )
 
         except Exception:
@@ -238,9 +249,10 @@ class DeviceTroubleshootingCreateView(APIView):
 
             logger.info(
                 "Sending device troubleshooting approval notification. "
-                "Approval Request ID: %s, Recipient: %s",
+                "Approval Request ID: %s, Recipient: %s, Company: %s",
                 approval_request.id,
-                approval_request.department_email
+                approval_request.department_email,
+                troubleshooting_request.company
             )
 
             email_result = send_approval_request_email(
@@ -300,6 +312,8 @@ class DeviceTroubleshootingCreateView(APIView):
                 "Device troubleshooting request submitted successfully."
             ),
 
+            "company": troubleshooting_request.company,
+
             "request_id": troubleshooting_request.id,
 
             "approval_request_id": approval_request.id,
@@ -313,6 +327,8 @@ class DeviceTroubleshootingCreateView(APIView):
             "email_message_id": email_message_id,
 
             "request": {
+                "company": troubleshooting_request.company,
+
                 "requester": troubleshooting_request.requester_name,
 
                 "device": troubleshooting_request.brand_model,
@@ -330,9 +346,10 @@ class DeviceTroubleshootingCreateView(APIView):
         logger.info(
             "Device troubleshooting processing completed. "
             "Request ID: %s, Approval Request ID: %s, "
-            "Email accepted: %s",
+            "Company: %s, Email accepted: %s",
             troubleshooting_request.id,
             approval_request.id,
+            troubleshooting_request.company,
             email_accepted
         )
 

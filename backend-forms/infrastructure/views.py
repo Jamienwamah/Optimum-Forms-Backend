@@ -281,6 +281,8 @@ class InfrastructureReceiptCreateView(APIView):
             "message": (
                 "Infrastructure receipt submitted successfully."
             ),
+            
+            "company": infrastructure_receipt.company,
 
             "id": infrastructure_receipt.id,
 
@@ -295,6 +297,7 @@ class InfrastructureReceiptCreateView(APIView):
             "email_message_id": email_message_id,
 
             "document_no": infrastructure_receipt.document_no,
+            
 
             "requester": {
                 "name": infrastructure_receipt.requester_name,

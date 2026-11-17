@@ -4,13 +4,24 @@ from rest_framework import serializers
 from .models import DeviceReplacementRequest
 
 
+# ==========================================================
+# EMPLOYEE INFORMATION SERIALIZER
+# ==========================================================
+
 class EmployeeSerializer(serializers.Serializer):
 
     name = serializers.CharField(max_length=255)
+
     department = serializers.CharField(max_length=255)
+
     jobTitle = serializers.CharField(max_length=255)
+
     employeeId = serializers.CharField(max_length=100)
 
+
+# ==========================================================
+# CURRENT DEVICE INFORMATION SERIALIZER
+# ==========================================================
 
 class CurrentDeviceSerializer(serializers.Serializer):
 
@@ -37,6 +48,10 @@ class CurrentDeviceSerializer(serializers.Serializer):
     reasonForReplacement = serializers.CharField()
 
 
+# ==========================================================
+# REPLACEMENT DETAILS SERIALIZER
+# ==========================================================
+
 class ReplacementDetailsSerializer(serializers.Serializer):
 
     requestedDeviceType = serializers.ChoiceField(
@@ -61,7 +76,24 @@ class ReplacementDetailsSerializer(serializers.Serializer):
     requiredDate = serializers.DateField()
 
 
+# ==========================================================
+# MAIN DEVICE REPLACEMENT SERIALIZER
+# ==========================================================
+
 class DeviceReplacementSerializer(serializers.Serializer):
+
+    # ------------------------------------------------------
+    # COMPANY
+    # ------------------------------------------------------
+
+    company = serializers.ChoiceField(
+        choices=DeviceReplacementRequest.Company.choices,
+        required=True
+    )
+
+    # ------------------------------------------------------
+    # CURRENT DATE
+    # ------------------------------------------------------
 
     currentDate = serializers.CharField(
         required=False,
@@ -69,32 +101,82 @@ class DeviceReplacementSerializer(serializers.Serializer):
         write_only=True
     )
 
+    # ------------------------------------------------------
+    # EMPLOYEE INFORMATION
+    # ------------------------------------------------------
+
     employee = EmployeeSerializer()
+
+    # ------------------------------------------------------
+    # CURRENT DEVICE INFORMATION
+    # ------------------------------------------------------
 
     currentDevice = CurrentDeviceSerializer()
 
+    # ------------------------------------------------------
+    # REPLACEMENT DETAILS
+    # ------------------------------------------------------
+
     replacementDetails = ReplacementDetailsSerializer()
+
+    # ======================================================
+    # CREATE DEVICE REPLACEMENT REQUEST
+    # ======================================================
 
     def create(self, validated_data):
 
         request = self.context.get("request")
 
         if not request or not request.user.is_authenticated:
+
             raise serializers.ValidationError(
                 "An authenticated user is required."
             )
 
-        employee_data = validated_data.pop("employee")
+        # --------------------------------------------------
+        # REMOVE COMPANY
+        # --------------------------------------------------
 
-        device_data = validated_data.pop("currentDevice")
+        company = validated_data.pop(
+            "company"
+        )
+
+        # --------------------------------------------------
+        # REMOVE NESTED DATA
+        # --------------------------------------------------
+
+        employee_data = validated_data.pop(
+            "employee"
+        )
+
+        device_data = validated_data.pop(
+            "currentDevice"
+        )
 
         replacement_data = validated_data.pop(
             "replacementDetails"
         )
 
-        validated_data.pop("currentDate", None)
+        validated_data.pop(
+            "currentDate",
+            None
+        )
+
+        # --------------------------------------------------
+        # CREATE DATABASE RECORD
+        # --------------------------------------------------
 
         return DeviceReplacementRequest.objects.create(
+
+            # ----------------------------------------------
+            # COMPANY
+            # ----------------------------------------------
+
+            company=company,
+
+            # ----------------------------------------------
+            # EMPLOYEE INFORMATION
+            # ----------------------------------------------
 
             requester_name=employee_data["name"],
 
@@ -103,6 +185,10 @@ class DeviceReplacementSerializer(serializers.Serializer):
             job_title=employee_data["jobTitle"],
 
             employee_id=employee_data["employeeId"],
+
+            # ----------------------------------------------
+            # CURRENT DEVICE INFORMATION
+            # ----------------------------------------------
 
             asset_tag=device_data.get("assetTag") or None,
 
@@ -116,6 +202,10 @@ class DeviceReplacementSerializer(serializers.Serializer):
                 "reasonForReplacement"
             ],
 
+            # ----------------------------------------------
+            # REPLACEMENT REQUIREMENTS
+            # ----------------------------------------------
+
             requested_device_type=replacement_data[
                 "requestedDeviceType"
             ],
@@ -125,6 +215,10 @@ class DeviceReplacementSerializer(serializers.Serializer):
             justification=replacement_data["justification"],
 
             required_date=replacement_data["requiredDate"],
+
+            # ----------------------------------------------
+            # AUTHENTICATED USER
+            # ----------------------------------------------
 
             created_by=request.user
         )

@@ -1,8 +1,25 @@
+
 from django.conf import settings
 from django.db import models
 
 
 class InfrastructureReceipt(models.Model):
+
+    # ==========================================================
+    # COMPANY / ORGANIZATION
+    # ==========================================================
+
+    class Company(models.TextChoices):
+        OGCM = "OGCM", "Optimum Global Capital"
+        OGFS = "OGFS", "Optimum Global Financial Services"
+        OST = "OST", "Optimum Securities and Trust"
+
+    company = models.CharField(
+        max_length=4,
+        choices=Company.choices,
+        db_index=True,
+        help_text="Company submitting this infrastructure receipt."
+    )
 
     # ==========================================================
     # REQUEST STATUS
@@ -16,7 +33,6 @@ class InfrastructureReceipt(models.Model):
         ("Completed", "Completed"),
         ("Closed", "Closed"),
     ]
-
 
     # ==========================================================
     # INFRASTRUCTURE CATEGORIES
@@ -38,7 +54,6 @@ class InfrastructureReceipt(models.Model):
         ("Biometric", "Biometric"),
     ]
 
-
     # ==========================================================
     # INSPECTION PHYSICAL CONDITION
     # ==========================================================
@@ -49,7 +64,6 @@ class InfrastructureReceipt(models.Model):
         ("Damaged Box", "Damaged Box"),
         ("Defective", "Defective"),
     ]
-
 
     # ==========================================================
     # REQUEST INFORMATION
@@ -68,7 +82,6 @@ class InfrastructureReceipt(models.Model):
     )
 
     date_received = models.DateField()
-
 
     # ==========================================================
     # PROCUREMENT INFORMATION
@@ -105,7 +118,6 @@ class InfrastructureReceipt(models.Model):
         blank=True
     )
 
-
     # ==========================================================
     # INFRASTRUCTURE AND ASSET DETAILS
     # ==========================================================
@@ -130,7 +142,6 @@ class InfrastructureReceipt(models.Model):
     specifications = models.TextField(
         blank=True
     )
-
 
     # ==========================================================
     # INSPECTION AND QUALITY CHECK
@@ -159,7 +170,6 @@ class InfrastructureReceipt(models.Model):
         blank=True
     )
 
-
     # ==========================================================
     # APPROVAL WORKFLOW
     # ==========================================================
@@ -169,7 +179,6 @@ class InfrastructureReceipt(models.Model):
         choices=STATUS_CHOICES,
         default="Submitted"
     )
-
 
     # ==========================================================
     # AUTHENTICATED DJANGO USER
@@ -183,7 +192,6 @@ class InfrastructureReceipt(models.Model):
         related_name="infrastructure_receipts"
     )
 
-
     # ==========================================================
     # RECORD TIMESTAMPS
     # ==========================================================
@@ -195,7 +203,6 @@ class InfrastructureReceipt(models.Model):
     updated_at = models.DateTimeField(
         auto_now=True
     )
-
 
     # ==========================================================
     # MODEL CONFIGURATION
@@ -209,6 +216,16 @@ class InfrastructureReceipt(models.Model):
 
         verbose_name_plural = "Infrastructure Receipts"
 
+        indexes = [
+            models.Index(
+                fields=["company", "-created_at"],
+                name="infra_company_created_idx"
+            ),
+            models.Index(
+                fields=["company", "status"],
+                name="infra_company_status_idx"
+            ),
+        ]
 
     # ==========================================================
     # STRING REPRESENTATION
@@ -217,6 +234,7 @@ class InfrastructureReceipt(models.Model):
     def __str__(self):
 
         return (
+            f"{self.company} - "
             f"{self.document_no} - "
             f"{self.brand_model} - "
             f"{self.status}"

@@ -66,6 +66,15 @@ class OfficialUseSerializer(serializers.Serializer):
 class LaptopIssueSerializer(serializers.Serializer):
 
     # ------------------------------------------------------
+    # COMPANY
+    # ------------------------------------------------------
+
+    company = serializers.ChoiceField(
+        choices=LaptopIssue.Company.choices,
+        required=True
+    )
+
+    # ------------------------------------------------------
     # CURRENT DATE
     # ------------------------------------------------------
 
@@ -73,7 +82,6 @@ class LaptopIssueSerializer(serializers.Serializer):
         required=False,
         write_only=True
     )
-
 
     # ------------------------------------------------------
     # EMPLOYEE INFORMATION
@@ -83,7 +91,6 @@ class LaptopIssueSerializer(serializers.Serializer):
         required=True
     )
 
-
     # ------------------------------------------------------
     # OFFICIAL LAPTOP ISSUE INFORMATION
     # ------------------------------------------------------
@@ -91,7 +98,6 @@ class LaptopIssueSerializer(serializers.Serializer):
     officialUse = OfficialUseSerializer(
         required=True
     )
-
 
     # ======================================================
     # CREATE LAPTOP ISSUE
@@ -112,7 +118,6 @@ class LaptopIssueSerializer(serializers.Serializer):
                 }
             )
 
-
         # --------------------------------------------------
         # REMOVE CURRENT DATE
         # --------------------------------------------------
@@ -122,6 +127,13 @@ class LaptopIssueSerializer(serializers.Serializer):
             None
         )
 
+        # --------------------------------------------------
+        # REMOVE COMPANY
+        # --------------------------------------------------
+
+        company = validated_data.pop(
+            "company"
+        )
 
         # --------------------------------------------------
         # REMOVE NESTED DATA
@@ -135,7 +147,6 @@ class LaptopIssueSerializer(serializers.Serializer):
             "officialUse"
         )
 
-
         # --------------------------------------------------
         # GENERATE DOCUMENT NUMBER
         # --------------------------------------------------
@@ -146,7 +157,6 @@ class LaptopIssueSerializer(serializers.Serializer):
             f"{uuid4().hex[:8].upper()}"
         )
 
-
         # --------------------------------------------------
         # CREATE DATABASE RECORD
         # --------------------------------------------------
@@ -154,18 +164,22 @@ class LaptopIssueSerializer(serializers.Serializer):
         laptop_issue = LaptopIssue.objects.create(
 
             # ----------------------------------------------
+            # COMPANY
+            # ----------------------------------------------
+
+            company=company,
+
+            # ----------------------------------------------
             # AUTHENTICATED DJANGO USER
             # ----------------------------------------------
 
             created_by=request.user,
-
 
             # ----------------------------------------------
             # DOCUMENT INFORMATION
             # ----------------------------------------------
 
             document_no=document_no,
-
 
             # ----------------------------------------------
             # EMPLOYEE INFORMATION
@@ -186,7 +200,6 @@ class LaptopIssueSerializer(serializers.Serializer):
             employee_id=employee_data.get(
                 "employeeId"
             ),
-
 
             # ----------------------------------------------
             # LAPTOP ISSUE INFORMATION
@@ -212,8 +225,6 @@ class LaptopIssueSerializer(serializers.Serializer):
             date_issued=official_use_data.get(
                 "dateIssued"
             )
-
         )
-
 
         return laptop_issue

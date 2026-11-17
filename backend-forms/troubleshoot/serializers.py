@@ -4,13 +4,24 @@ from rest_framework import serializers
 from .models import DeviceTroubleshootingRequest
 
 
+# ==========================================================
+# EMPLOYEE INFORMATION SERIALIZER
+# ==========================================================
+
 class EmployeeSerializer(serializers.Serializer):
 
     name = serializers.CharField(max_length=255)
+
     department = serializers.CharField(max_length=255)
+
     jobTitle = serializers.CharField(max_length=255)
+
     employeeId = serializers.CharField(max_length=100)
 
+
+# ==========================================================
+# DEVICE INFORMATION SERIALIZER
+# ==========================================================
 
 class DeviceSerializer(serializers.Serializer):
 
@@ -31,9 +42,15 @@ class DeviceSerializer(serializers.Serializer):
     )
 
     brandModel = serializers.CharField(max_length=255)
+
     serialNumber = serializers.CharField(max_length=255)
+
     operatingSystem = serializers.CharField(max_length=255)
 
+
+# ==========================================================
+# ISSUE INFORMATION SERIALIZER
+# ==========================================================
 
 class IssueSerializer(serializers.Serializer):
 
@@ -54,7 +71,24 @@ class IssueSerializer(serializers.Serializer):
     )
 
 
+# ==========================================================
+# MAIN DEVICE TROUBLESHOOTING SERIALIZER
+# ==========================================================
+
 class DeviceTroubleshootingSerializer(serializers.Serializer):
+
+    # ------------------------------------------------------
+    # COMPANY
+    # ------------------------------------------------------
+
+    company = serializers.ChoiceField(
+        choices=DeviceTroubleshootingRequest.Company.choices,
+        required=True
+    )
+
+    # ------------------------------------------------------
+    # CURRENT DATE
+    # ------------------------------------------------------
 
     currentDate = serializers.CharField(
         required=False,
@@ -62,37 +96,96 @@ class DeviceTroubleshootingSerializer(serializers.Serializer):
         write_only=True
     )
 
+    # ------------------------------------------------------
+    # EMPLOYEE INFORMATION
+    # ------------------------------------------------------
+
     employee = EmployeeSerializer()
+
+    # ------------------------------------------------------
+    # DEVICE INFORMATION
+    # ------------------------------------------------------
 
     device = DeviceSerializer()
 
+    # ------------------------------------------------------
+    # ISSUE INFORMATION
+    # ------------------------------------------------------
+
     issue = IssueSerializer()
+
+    # ------------------------------------------------------
+    # OFFICIAL USE
+    # ------------------------------------------------------
 
     officialUse = serializers.DictField(
         required=False,
         allow_empty=True
     )
 
+    # ======================================================
+    # CREATE DEVICE TROUBLESHOOTING REQUEST
+    # ======================================================
+
     def create(self, validated_data):
 
         request = self.context.get("request")
 
         if not request or not request.user.is_authenticated:
+
             raise serializers.ValidationError(
                 "An authenticated user is required."
             )
 
-        employee_data = validated_data.pop("employee")
+        # --------------------------------------------------
+        # REMOVE COMPANY
+        # --------------------------------------------------
 
-        device_data = validated_data.pop("device")
+        company = validated_data.pop(
+            "company"
+        )
 
-        issue_data = validated_data.pop("issue")
+        # --------------------------------------------------
+        # REMOVE NESTED DATA
+        # --------------------------------------------------
 
-        validated_data.pop("currentDate", None)
+        employee_data = validated_data.pop(
+            "employee"
+        )
 
-        validated_data.pop("officialUse", None)
+        device_data = validated_data.pop(
+            "device"
+        )
+
+        issue_data = validated_data.pop(
+            "issue"
+        )
+
+        validated_data.pop(
+            "currentDate",
+            None
+        )
+
+        validated_data.pop(
+            "officialUse",
+            None
+        )
+
+        # --------------------------------------------------
+        # CREATE DATABASE RECORD
+        # --------------------------------------------------
 
         return DeviceTroubleshootingRequest.objects.create(
+
+            # ----------------------------------------------
+            # COMPANY
+            # ----------------------------------------------
+
+            company=company,
+
+            # ----------------------------------------------
+            # EMPLOYEE INFORMATION
+            # ----------------------------------------------
 
             requester_name=employee_data["name"],
 
@@ -101,6 +194,10 @@ class DeviceTroubleshootingSerializer(serializers.Serializer):
             job_title=employee_data["jobTitle"],
 
             employee_id=employee_data["employeeId"],
+
+            # ----------------------------------------------
+            # DEVICE INFORMATION
+            # ----------------------------------------------
 
             asset_tag=device_data.get("assetTag") or None,
 
@@ -111,6 +208,10 @@ class DeviceTroubleshootingSerializer(serializers.Serializer):
             serial_number=device_data["serialNumber"],
 
             operating_system=device_data["operatingSystem"],
+
+            # ----------------------------------------------
+            # ISSUE INFORMATION
+            # ----------------------------------------------
 
             date_reported=issue_data["dateReported"],
 
@@ -124,7 +225,13 @@ class DeviceTroubleshootingSerializer(serializers.Serializer):
                 "troubleshootingAttempted"
             ],
 
-            attempted_details=issue_data.get("attemptedDetails") or None,
+            attempted_details=issue_data.get(
+                "attemptedDetails"
+            ) or None,
+
+            # ----------------------------------------------
+            # AUTHENTICATED USER
+            # ----------------------------------------------
 
             created_by=request.user
         )

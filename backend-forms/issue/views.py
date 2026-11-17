@@ -31,7 +31,6 @@ class LaptopIssueCreateView(APIView):
             request.user.id
         )
 
-
         # ========================================================
         # VALIDATE LAPTOP ISSUE
         # ========================================================
@@ -58,11 +57,22 @@ class LaptopIssueCreateView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-
         logger.info(
             "Laptop issue validation successful."
         )
 
+        # ========================================================
+        # GET COMPANY
+        # ========================================================
+
+        company = serializer.validated_data.get(
+            "company"
+        )
+
+        logger.info(
+            "Laptop issue company identified: %s",
+            company
+        )
 
         # ========================================================
         # DETERMINE APPROVAL DEPARTMENT
@@ -88,12 +98,10 @@ class LaptopIssueCreateView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-
         logger.info(
             "Laptop issue approval department determined: %s",
             approval["department"]
         )
-
 
         # ========================================================
         # SAVE LAPTOP ISSUE AND CREATE APPROVAL
@@ -106,16 +114,18 @@ class LaptopIssueCreateView(APIView):
                 laptop_issue = serializer.save()
 
                 logger.info(
-                    "Laptop issue saved. Record ID: %s",
-                    laptop_issue.id
+                    "Laptop issue saved. Record ID: %s, Company: %s",
+                    laptop_issue.id,
+                    laptop_issue.company
                 )
-
 
                 # ====================================================
                 # BUILD APPROVAL SUBMISSION DATA
                 # ====================================================
 
                 submission_data = {
+
+                    "company": laptop_issue.company,
 
                     "documentNo": laptop_issue.document_no,
 
@@ -154,7 +164,6 @@ class LaptopIssueCreateView(APIView):
                     }
                 }
 
-
                 # ====================================================
                 # CREATE CENTRAL APPROVAL REQUEST
                 # ====================================================
@@ -171,19 +180,19 @@ class LaptopIssueCreateView(APIView):
 
                     reason=(
                         "Laptop issue approval required: "
-                        f"{laptop_issue.document_no}"
+                        f"{laptop_issue.document_no} "
+                        f"({laptop_issue.company})"
                     ),
 
                     submission_data=submission_data,
                 )
 
-
                 logger.info(
                     "Laptop issue approval request created. "
-                    "Approval Request ID: %s",
-                    approval_request.id
+                    "Approval Request ID: %s, Company: %s",
+                    approval_request.id,
+                    laptop_issue.company
                 )
-
 
         except Exception:
 
@@ -201,7 +210,6 @@ class LaptopIssueCreateView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-
         # ========================================================
         # SEND APPROVAL EMAIL
         # ========================================================
@@ -213,9 +221,10 @@ class LaptopIssueCreateView(APIView):
 
             logger.info(
                 "Sending laptop issue approval notification. "
-                "Approval Request ID: %s, Recipient: %s",
+                "Approval Request ID: %s, Recipient: %s, Company: %s",
                 approval_request.id,
-                approval_request.department_email
+                approval_request.department_email,
+                laptop_issue.company
             )
 
             email_result = send_approval_request_email(
@@ -227,7 +236,6 @@ class LaptopIssueCreateView(APIView):
                 email_result
             )
 
-
             if isinstance(email_result, dict):
 
                 email_message_id = email_result.get(
@@ -237,7 +245,6 @@ class LaptopIssueCreateView(APIView):
             elif isinstance(email_result, str):
 
                 email_message_id = email_result
-
 
             if email_message_id:
 
@@ -257,7 +264,6 @@ class LaptopIssueCreateView(APIView):
                     approval_request.id
                 )
 
-
         except Exception:
 
             logger.exception(
@@ -265,7 +271,6 @@ class LaptopIssueCreateView(APIView):
                 "Approval Request ID: %s",
                 approval_request.id
             )
-
 
         # ========================================================
         # RESPONSE
@@ -278,6 +283,8 @@ class LaptopIssueCreateView(APIView):
             ),
 
             "id": laptop_issue.id,
+
+            "company": laptop_issue.company,
 
             "document_no": laptop_issue.document_no,
 
@@ -301,16 +308,15 @@ class LaptopIssueCreateView(APIView):
             "request_date": laptop_issue.request_date
         }
 
-
         logger.info(
             "Laptop issue processing completed. "
             "Record ID: %s, Approval Request ID: %s, "
-            "Email accepted: %s",
+            "Company: %s, Email accepted: %s",
             laptop_issue.id,
             approval_request.id,
+            laptop_issue.company,
             email_accepted
         )
-
 
         return Response(
             response_data,
