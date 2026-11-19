@@ -283,18 +283,18 @@ DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL")
 
 # Compatibility configuration.
 # Keep this only if existing application code reads MAILERS.
-MAILERS = {
-    "default": {
-        "BACKEND": EMAIL_BACKEND,
-        "OPTIONS": {
-            "host": EMAIL_HOST,
-            "port": EMAIL_PORT,
-            "username": EMAIL_HOST_USER,
-            "password": EMAIL_HOST_PASSWORD,
-            "use_tls": EMAIL_USE_TLS,
-        },
-    },
-}
+# MAILERS = {
+#     "default": {
+#         "BACKEND": EMAIL_BACKEND,
+#         "OPTIONS": {
+#             "host": EMAIL_HOST,
+#             "port": EMAIL_PORT,
+#             "username": EMAIL_HOST_USER,
+#             "password": EMAIL_HOST_PASSWORD,
+#             "use_tls": EMAIL_USE_TLS,
+#         },
+#     },
+# }
 
 
 # --------------------------------------------------

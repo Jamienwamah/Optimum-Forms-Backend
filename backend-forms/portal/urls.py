@@ -39,7 +39,7 @@ urlpatterns = [
     path("api/v1/", include("issue.urls")),
 
     # Device replacement endpoint
-    path("api/v1/ogcm/", include("ogcmrepl.urls")),
+    path("api/v1/ogcm/", include("replacement.urls")),
 
     # Backend status
     path("", api_status, name="api_status"),
